@@ -36,8 +36,7 @@ function crearEstructuraDeDatos(){
     dbDelta( $sql );
     $sql = "CREATE TABLE IF NOT EXISTS wp_ch_miembros (
             id int NOT NULL AUTO_INCREMENT,
-            nombre varchar(255) NOT NULL,
-            email varchar(255) NOT NULL,
+            user_id INT,
             tipo_documento INT NOT NULL, 
             numero_documento varchar(15),
             localidad varchar(50),
