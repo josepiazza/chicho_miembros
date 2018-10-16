@@ -5,10 +5,12 @@ Description: Controla los miembros de una institución y administra carnets
 Author: José Piazza
 */
 
-require __DIR__.'/clases/ch_inicio.php';
+require __DIR__.'/ch_miembro_include.php';
+
 
 use chicho\miembros\clases\ch_inicio;
 
+$r = new ch_inicio();
 
 function crearEstructuraDeDatos(){
 
@@ -40,8 +42,8 @@ function crearEstructuraDeDatos(){
             tipo_documento INT NOT NULL, 
             numero_documento varchar(15),
             localidad varchar(50),
-            nivel INT NOT NULL, 
-            nivel_instructor INT NOT NULL,
+            nivel INT , 
+            nivel_instructor INT ,
             UNIQUE KEY id (id), 
             FOREIGN KEY (nivel) REFERENCES wp_ch_miembro_nivel(id) ON DELETE RESTRICT,
             FOREIGN KEY (nivel_instructor) REFERENCES wp_ch_miembro_nivel_instructor(id) ON DELETE RESTRICT,
@@ -69,3 +71,9 @@ function cargarDatosIniciales(){
 
 register_activation_hook( __FILE__, 'crearEstructuraDeDatos' );
 //register_activation_hook( __FILE__, 'cargarDatosIniciales' );
+
+
+function the_url( $url ) {
+    return get_bloginfo( 'url' );
+}
+add_filter( 'login_headerurl', 'the_url' );
