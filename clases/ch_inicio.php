@@ -21,6 +21,8 @@ class ch_inicio {
         add_action( 'register_form', [$this, 'modificar_form_registro']);
         add_action('user_register', [$this, 'registrar_usuario'], 10, 1 );
         add_filter( 'registration_errors', [$this, 'registrar_usuario_errors'], 10, 3 );
+        add_action( "user_new_form", [$this, "formulario_miembro_admin"], 10, 3 );
+        add_action( "edit_user_profile", [$this, "formulario_miembro_admin"], 10, 3 );
     } 
     
     public function crearMenu(){
@@ -46,6 +48,10 @@ class ch_inicio {
     }
     
 
+    public function nuevo_miembro_admin(){
+        print "<h1>Hola formulario</h1>";
+    }
+    
     public function modificar_form_registro(){
         $documento = ( ! empty( $_POST['documento'] ) ) ? sanitize_text_field( $_POST['documento'] ) : '';
         $localidad = ( ! empty( $_POST['localidad'] ) ) ? sanitize_text_field( $_POST['localidad'] ) : '';
@@ -87,7 +93,6 @@ class ch_inicio {
     public function registrar_usuario( $user_id ){
         
         
-        print "tratando: $user_id";
         $user = new ch_miembro_usuarios();
         $user->set_user_id($user_id);
         $user->set_nombre($_POST["first_name"]);
@@ -95,8 +100,8 @@ class ch_inicio {
         $user->set_tipo_documento($_POST["tipo_documento"]);
         $user->set_documento($_POST["documento"]);
         $user->set_localidad($_POST["localidad"]);
-        print $user->guardar();
-        exit();
+        return $user->guardar();
+
     }
     
     
@@ -115,5 +120,41 @@ class ch_inicio {
         return $errors;
     }
     
+    public function formulario_miembro_admin( $profileuser ){
+        
+        
+        
+        if( isset($profileuser->ID) ){
+        $usuario = ch_miembro_usuarios::get_miembro( $profileuser->ID );
+            $documento = $usuario->get_documento();
+            $localidad = $usuario->get_localidad();
+        }else{
+            $documento = ( ! empty( $_POST['documento'] ) ) ? sanitize_text_field( $_POST['documento'] ) : '';
+            $localidad = ( ! empty( $_POST['localidad'] ) ) ? sanitize_text_field( $_POST['localidad'] ) : '';      
+        }
+              
+        ?>
+        
+        <p>
+            <label for="tipo_documento"><?php _e( 'Tipo de documento' ) ?>
+                <br />
+                <select name="tipo_documento">
+                    <option value="1">DNI</option>
+                    <option value="2">Pasaporte</option>
+                </select>
+            </label>
+        </p>
+        <p>
+            <label for="dni"><?php _e( 'Documento' ) ?><br />
+                <input type="text" name="documento" id="documento" class="input" value="<?php echo esc_attr(  $documento  ); ?>" size="25" /></label>
+        </p>
+        <p>
+            <label for="localidad"><?php _e( 'Localidad' ) ?><br />
+                <input type="text" name="localidad" id="localidad" class="input" value="<?php echo esc_attr(  $localidad  ); ?>" size="25" /></label>
+        </p>
+        <?php
+        
+        
+    }
 
 }

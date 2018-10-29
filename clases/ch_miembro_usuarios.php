@@ -66,4 +66,27 @@ class ch_miembro_usuarios extends ch_core{
         $rta = $wpdb->get_results( $sql );
         return $rta;
     }
+    
+    public static function get_miembro($id){
+        $m = new ch_miembro_usuarios();
+        $m->buscar_usuario($id);
+        return $m;
+    }
+    
+    public function buscar_usuario($id){
+        global $wpdb;
+        $sql = "SELECT * FROM ".$wpdb->prefix."ch_miembros WHERE user_id = $id";
+        $rs = $wpdb->get_results( $sql );
+        $this->tipo_documento = $rs[0]->tipo_documento;
+        $this->documento = $rs[0]->numero_documento;
+        $this->localidad = $rs[0]->localidad;
+        $this->nivel = $rs[0]->nivel;
+        $this->nivel_instructor = $rs[0]->nivel_instructor;
+    }
+    
+    public function get_tipo_documento(){return $this->tipo_documento ;}
+    public function get_documento(){return $this->documento ;}
+    public function get_localidad(){return $this->localidad ;}
+    public function get_nivel(){return $this->nivel ;}
+    public function get_nivel_instructor(){return $this->nivel_instructor ;}
 }
