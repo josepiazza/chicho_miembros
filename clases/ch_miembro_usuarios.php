@@ -33,6 +33,7 @@ class ch_miembro_usuarios extends ch_core{
         global $wpdb;
         
         if(!empty($this->user_id)){
+
             if( !empty( $this->nombre ) ) update_user_meta( $this->user_id, 'first_name', sanitize_text_field( $this->nombre ) );
             if( !empty( $this->apellido ) ) update_user_meta( $this->user_id, 'last_name', sanitize_text_field( $this->apellido ) );
 
@@ -43,7 +44,12 @@ class ch_miembro_usuarios extends ch_core{
                 "localidad"=>( (!empty($this->localidad))?$this->localidad:'' ),
             ];
             $format = ["%d", "%d", "%s", "%s"];
-            return $wpdb->insert($wpdb->prefix.$this->nombre_tabla, $insert, $format);
+            if( $this->existo($this->user_id, "user_id", $wpdb->prefix.$this->nombre_tabla) ){
+                $where = ["user_id"=>$this->user_id];
+                return $wpdb->update($wpdb->prefix.$this->nombre_tabla, $insert, $where, $format);
+            }else{
+                return $wpdb->insert($wpdb->prefix.$this->nombre_tabla, $insert, $format);
+            }
         }
     }
     

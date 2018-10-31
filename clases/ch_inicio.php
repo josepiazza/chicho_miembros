@@ -23,6 +23,7 @@ class ch_inicio {
         add_filter( 'registration_errors', [$this, 'registrar_usuario_errors'], 10, 3 );
         add_action( "user_new_form", [$this, "formulario_miembro_admin"], 10, 3 );
         add_action( "edit_user_profile", [$this, "formulario_miembro_admin"], 10, 3 );
+        add_action("edit_user_profile_update",  [$this, "registrar_usuario"]);
     } 
     
     public function crearMenu(){

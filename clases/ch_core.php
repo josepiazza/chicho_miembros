@@ -13,10 +13,21 @@ namespace chicho\miembros\clases;
  *
  * @author chicho
  */
-class ch_core {
+abstract class ch_core  {
     //put your code here
     
-    public function get_lista( $filtro, $pagina = 1 ){print "Implementar";}
+    abstract public function get_lista( $filtro, $pagina = 1 );
+    
+    protected function existo($id, $campo, $tabla){
+        global $wpdb;
+        $sql = "SELECT count(0) as existe FROM $tabla WHERE $campo = $id";
+        $rta = $wpdb->get_results( $sql );
+        if($rta[0]->existe > 0){
+            return true;
+        }else{
+            return false;
+        }
+    }
     
     public function get_tabla_html($filtro, $pagina = 1){
         $lista = $this->get_lista($filtro, $pagina = 1);
