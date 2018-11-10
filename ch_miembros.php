@@ -44,6 +44,8 @@ function crearEstructuraDeDatos(){
             localidad varchar(50),
             nivel INT , 
             nivel_instructor INT ,
+            instructor INT,
+            instructor_certificante INT,
             UNIQUE KEY id (id), 
             FOREIGN KEY (nivel) REFERENCES ".$wpdb->prefix."ch_miembro_nivel(id) ON DELETE RESTRICT,
             FOREIGN KEY (nivel_instructor) REFERENCES ".$wpdb->prefix."ch_miembro_nivel_instructor(id) ON DELETE RESTRICT,

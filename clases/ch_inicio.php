@@ -8,6 +8,7 @@
 namespace chicho\miembros\clases;
 
 use chicho\miembros\clases\ch_miembro_usuarios;
+use QRcode;
 
 class ch_inicio {
 
@@ -17,13 +18,16 @@ class ch_inicio {
         
         add_action('wp_login', array($this, 'redirect'));  
         add_action('wp_logout', array($this, 'redirect'));  
-//        add_shortcode( 'ch_testeo', [$this, 'custom_shortcode'] );
         add_action( 'register_form', [$this, 'modificar_form_registro']);
         add_action('user_register', [$this, 'registrar_usuario'], 10, 1 );
         add_filter( 'registration_errors', [$this, 'registrar_usuario_errors'], 10, 3 );
         add_action( "user_new_form", [$this, "formulario_miembro_admin"], 10, 3 );
         add_action( "edit_user_profile", [$this, "formulario_miembro_admin"], 10, 3 );
         add_action("edit_user_profile_update",  [$this, "registrar_usuario"]);
+        
+        
+        
+        add_shortcode( 'ch_miembro_carnet', [$this, 'mostrar_carnet_miembro'] );
     } 
     
     public function crearMenu(){
@@ -156,6 +160,11 @@ class ch_inicio {
         <?php
         
         
+    }
+    
+    public function mostrar_carnet_miembro(){
+        QRcode::png('PHP QR Code :)', "imagen.png");
+        print "<img src='".get_site_url()."/imagen.png'>";
     }
 
 }

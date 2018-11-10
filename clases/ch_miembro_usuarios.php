@@ -1,13 +1,9 @@
 <?php
 
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 namespace chicho\miembros\clases;
 use chicho\miembros\clases\ch_core;
+use chicho\miembros\clases\ch_miembro_pago;
+
 /**
  * Description of ch_miembro_usuarios
  *
@@ -21,7 +17,7 @@ class ch_miembro_usuarios extends ch_core{
     protected $nombre;
     protected $apellido;
     protected $nombre_tabla = "ch_miembros";
-    
+    protected $pagos;
     public function get_formulario(){
         
         $rta = "<input type='text' name='dni'>";
@@ -95,4 +91,9 @@ class ch_miembro_usuarios extends ch_core{
     public function get_localidad(){return $this->localidad ;}
     public function get_nivel(){return $this->nivel ;}
     public function get_nivel_instructor(){return $this->nivel_instructor ;}
+    
+    public function add_pago(ch_miembro_pago $pago ){
+        $pago->setUser_id($this->user_id);
+        $pago->guardar();
+    }
 }
