@@ -10,20 +10,40 @@ use chicho\miembros\clases\ch_miembro_pago;
  * @author chicho
  */
 class ch_miembro_usuarios extends ch_core{
+    protected $id;
     protected $user_id;
     protected $tipo_documento;
     protected $documento;
     protected $localidad;
     protected $nombre;
     protected $apellido;
+    protected $nivel;
+    protected $nivel_instructor;
     protected $nombre_tabla = "ch_miembros";
     protected $pagos;
+    
+    
+    
     public function get_formulario(){
-        
         $rta = "<input type='text' name='dni'>";
-        return $rta;
-        
+        return $rta;   
     }
+    function getId() {
+        return $this->id;
+    }
+
+    function setId($id) {
+        $this->id = $id;
+    }
+
+        protected function get_campo_id() {
+        return "user_id";
+    }
+
+    protected function get_tabla() {
+        return $this->nombre_tabla;
+    }
+
     
     public function guardar(){
         global $wpdb;
@@ -50,16 +70,13 @@ class ch_miembro_usuarios extends ch_core{
     }
     
     public function set_user_id($valor){ $this->user_id = $valor; }
-    
     public function set_nombre($valor){ $this->nombre = $valor; }
-    
     public function set_apellido($valor){ $this->apellido = $valor; }
-    
     public function set_tipo_documento($valor){ $this->tipo_documento = $valor; }
-    
     public function set_documento($valor){ $this->documento = $valor; }
-    
     public function set_localidad($valor){ $this->localidad = $valor; }
+    public function set_nivel($valor){ $this->nivel = $valor; }
+    public function set_nivel_instructor($valor){ $this->nivel_instructor = $valor; }
     
     public function get_lista($filtro, $page=1){
         
@@ -77,13 +94,20 @@ class ch_miembro_usuarios extends ch_core{
     
     public function buscar_usuario($id){
         global $wpdb;
+        $this->user_id = $id;
         $sql = "SELECT * FROM ".$wpdb->prefix."ch_miembros WHERE user_id = $id";
         $rs = $wpdb->get_results( $sql );
         $this->tipo_documento = $rs[0]->tipo_documento;
         $this->documento = $rs[0]->numero_documento;
         $this->localidad = $rs[0]->localidad;
         $this->nivel = $rs[0]->nivel;
+        $this->nivel_desc = $this->buscar_nivel($this->nivel);
         $this->nivel_instructor = $rs[0]->nivel_instructor;
+        $this->nivel_instructor_desc = $this->buscar_nivel_instructor($this->nivel_instructor);
+        $this->nombre = get_user_meta($this->user_id,"first_name", true);
+        $this->apellido = get_user_meta($this->user_id,"last_name",true);
+        $this->nickname = get_user_meta($row->user_id, "nickname", true);
+        $this->email = get_user_option("user_email", $row->user_id);
     }
     
     public function get_tipo_documento(){return $this->tipo_documento ;}
@@ -95,5 +119,279 @@ class ch_miembro_usuarios extends ch_core{
     public function add_pago(ch_miembro_pago $pago ){
         $pago->setUser_id($this->user_id);
         $pago->guardar();
+    }
+    
+    public function get_tabla_html($filtro, $pagina = 1){
+        $lista = $this->get_lista($filtro, $pagina = 1);
+        $rta = "<table class='wp-list-table widefat fixed striped posts'><tbody id='the-list'>";
+        foreach( $lista as $row ){ 
+            $nombre = get_user_meta($row->user_id,"first_name", true);
+            $apellido = get_user_meta($row->user_id,"last_name",true);
+            $nickname = get_user_meta($row->user_id, "nickname", true);
+            $email = get_user_option("user_email", $row->user_id);
+            $rta .= "<tr>";
+                $rta .= "<td>".$nickname."</td>";
+                $rta .= "<td>".$nombre."</td>";
+                $rta .= "<td>".$apellido."</td>";
+                $rta .= "<td>".$email."</td>";
+            
+            $rta.="<td><a href='?page=listado_miembros&opt=detalles&id=".$row->user_id."'>Detalles</a></td>";
+            $rta.="<td><a href='?page=listado_miembros&opt=editar&id=".$row->user_id."'>Editar</a></td>";
+            $rta.="</tr>";            
+        }
+        $rta .= "</tbody></table>";
+        return $rta;
+    }
+    
+    protected function get_detalle($user_id){
+//        $this->buscar_usuario($user_id);
+        $rta = <<<RTA
+ <table>
+    <tr>
+        <td>Nombre:</td><td>{$this->nombre}</td>
+    </tr>
+    <tr>
+        <td>Apellido:</td><td>{$this->apellido}</td>
+    </tr>
+    <tr>
+        <td>Email:</td><td>{$this->email}</td>
+    </tr>
+    <tr>
+        <td>Nivel:</td><td>{$this->nivel } - {$this->nivel_desc}</td>
+    </tr>
+    <tr>
+        <td>Nivel Instructor:</td><td>{$this->nivel_instructor}{$this->nivel_instructor_desc}</td>
+    </tr>
+</table>       
+     <div>
+   <a href="?page=listado_miembros">Volver</a>      
+   </div>$valor
+
+RTA;
+        
+//        var_dump( get_userdata($user_id) );
+//        print_r(get_user_meta($user_id));
+        return $rta;
+    }
+
+    public function get_editar($user_id){
+        $this->buscar_usuario($user_id);
+        $nivel = $this->get_lista_nivel();
+        $nivel_instructor = $this->get_lista_nivel_instructor();
+        
+        $combo_nivel = "<select name='nivel' id='nivel' value='{$this->nivel}'>";
+        $combo_nivel .= "<option value='0'>Seleccionar...</option>";
+        foreach($nivel as $row){
+            $combo_nivel .= "<option value='{$row->id}'>{$row->nivel}</option>";
+        }
+        $combo_nivel .= "</select>";
+        
+        $combo_nivel_instructor = "<select name='nivel_instructor' id='nivel_instructor' value='{$this->nivel}'>";
+        $combo_nivel_instructor .= "<option value='0'>Seleccionar...</option>";
+        foreach($nivel_instructor as $row){
+            $combo_nivel_instructor .= "<option value='{$row->id}'>{$row->nivel}</option>";
+        }
+         $combo_nivel_instructor .= "</select>";
+        
+        $rta = <<<RTA
+    
+  <table>
+    <tr>
+        <td>Nombre:</td><td>{$this->nombre}</td>
+    </tr>
+    <tr>
+        <td>Apellido:</td><td>{$this->apellido}</td>
+    </tr>
+    <tr>
+        <td>Email:</td><td>{$this->email}</td>
+    </tr>
+    <tr>
+        <td>Nivel:</td><td>{$combo_nivel}</td>
+    </tr>
+    <tr>
+        <td>Nivel Instructor:</td><td>{$combo_nivel_instructor}</td>
+    </tr>
+</table>    
+<script>
+
+        document.getElementById("nivel").value= {$this->nivel};
+        document.getElementById("nivel_instructor").value= {$this->nivel_instructor};
+        
+</script>
+RTA;
+        return $rta;
+    }
+    
+    public function salida_web($request){
+         switch ($request["opt"]){
+            case "detalles";
+                $rta = $this->get_detalle($request["id"]);
+                break;
+            case "editar";
+                $rta = $this->get_editar($request["id"]);
+                break;
+            default:
+                 $rta = $this->get_tabla_html(null);
+                break;
+        }
+            
+        return $rta;
+    }
+    
+    public function importar_listado($request){
+        global $wpdb;
+        switch ($request["opt"]){
+            case "paso1":
+                $archivo = explode("\n", $request["archivo"]);
+                foreach($archivo as $fila){
+                    $item = explode(",", $fila);
+                    for($i=0; $i<count($item); $i++){
+                        $item[$i] = str_replace('\"', '', $item[$i]);
+                    }
+                    $estado = "N";
+                    $error = "";
+                    if(is_email($item[8]) ){
+                        $mail = $item[8];
+                        $direccion = '-';
+                    }else{
+                        $mail = "";
+                        $direccion=$item[8];
+                        $estado = "E";
+                        $error = "Sin email";
+                    }
+                    $insert = [
+                        "nro_socio" => $item[0],
+                        "apellido" => $item[1] ,
+                        "nombre" => $item[2] ,
+                        "nivel" => intval($item[3]),
+                        "carnet" => $item[4],
+                        "nivel_instructor" => intval($item[5]),
+                        "campo_07" => $direccion,
+                        "email" => $mail,
+                        "dni" => $item[7],
+                        "estado" => $estado,
+                        "error" => $error
+                    ];
+                    $wpdb->insert($wpdb->prefix."ch_importar", $insert, $format);
+                    
+                }
+                break;
+            case "procesar";
+//                remove_action($tag, $function_to_remove);
+                remove_action('user_register', [$this, 'registrar_usuario'] );
+                $sql = "SELECT * FROM ".$wpdb->prefix."ch_importar WHERE estado = 'N' " ;
+                $rs = $wpdb->get_results($sql);
+                foreach($rs as $fila){
+
+                    if( !is_email($fila->email) ){
+                        $error = ["estado"=>"E", "error"=>"Email no valido" ];
+                        $wpdb->update($wpdb->prefix."ch_importar", $error, ["nro_socio" => $fila->nro_socio]);
+                        continue;
+                    }
+                        $userdata = ['user_login'=>$fila->email,
+                                    'user_email'=>$fila->email, 
+                                    'user_pass'=>$fila->apellido.$fila->nro_socio,
+                            ];
+                   
+//                    $userdata = ['user_login', 'user_email', 'user_pass'];
+                    $user_id = wp_insert_user($userdata);
+                    print_r($user_id);
+                    if(!is_numeric($user_id) ){
+                        $error = ["estado"=>"E",
+                                  "error"=>"Error al dar del alta el usuario"
+                            ];
+                        $wpdb->update($wpdb->prefix."ch_importar", $error, ["nro_socio" => $fila->nro_socio]);
+                        continue;
+                    }
+                    
+                    print "=======================<br/>";
+                    print_r([$user_id, $userdata]);
+                    $nu = new ch_miembro_usuarios();
+                    $nu->set_user_id($user_id);
+                    $nu->setId( $fil->nro_socio );
+                    $nu->set_apellido( $fila->apellido );
+                    $nu->set_nombre( $fil->nombre );
+                    $nu->set_tipo_documento(1);
+                    $nu->set_documento( $fila->dni );
+                    $nu->set_nivel( $fila->nivel );
+                    $nu->set_nivel_instructor( $fila->nivel_instructor );
+                    
+                    $rtaNU = $nu->guardar();
+                    if( !$rtaNU ){
+                        $error = ["estado"=>"E",
+                                  "error"=>"Falla inesperada"
+                            ];
+                        $wpdb->update($wpdb->prefix."ch_importar", $error, ["nro_socio" => $fila->nro_socio]);
+                        continue;
+                        /* update tabla con el error y dejar de procesar */
+                    }else{
+                        /* Si guardó bien seguir cuardando el pago del carnet */
+                        $fecha = explode("-", $fila->carnet );
+                        $mes = $this->getMesNumero($fecha[0]);
+
+                            $anio = "20".$fecha[1];
+                            $fecha_socio = "1/{$mes}/{$anio}";
+                            $carnet_socio = new ch_miembro_pago();
+                            $carnet_socio->setUser_id($user_id);
+                            $carnet_socio->setVencimiento($fecha_socio);
+
+                        if( empty( $fila->nivel_instructor ) ){
+                            $carnet_socio->setItem(1);
+                        }else{
+                            $carnet_socio->setItem(2);
+                        }
+                        $carnet_socio->guardar();
+                        
+                        $succes = ["estado"=>"P"];
+                        $wpdb->update($wpdb->prefix."ch_importar", $succes, ["nro_socio" => $fila->nro_socio]);
+                    }
+                    print "{$item[2]} $fecha_socio  $fecha_instructor";
+//                    $carnet_socio = new ch_miembro_pago1();
+//                    $carnet_socio->
+//                    print $nu->get_detalle(1);
+                    print "<hr>";     
+                     
+                }
+                
+                $rta = "Procesando";
+//                $user_login = wp_slash( "user1" );
+//                $user_email = wp_slash( "user@mail.com"    );
+//                $user_pass = time();
+
+//                $rta = "ss";
+                break;
+            default:
+                 $rta = <<<RTA
+   <form action="?page=importar_listado&opt=paso1" method="post">
+<div> <textarea name="archivo" cols=75 rows=15>
+ 
+   </textarea>  </div>
+      <input type="submit" value="enviar"/>
+   </form>  
+       <hr/>
+  <form action="?page=importar_listado&opt=procesar" method="post">
+      <input type="submit" value="Procesar"/>
+   </form>  
+RTA;
+                break;
+        }
+            
+        return $rta;     
+    }
+    
+    private function getMesNumero($mes){
+        
+        if(is_numeric($mes) ){
+            return $mes;
+        }
+        
+        $lista = ["ene.", "feb.", "mar.", "abr.", "may.", "jun.", "jul.", "ago.", "sept.", "oct.", "nov.", "dic."];
+        $rta = array_search($mes, $lista);
+        if( $rta === false ){
+            return null;
+        }else{
+            return $rta + 1;
+        }
+        
     }
 }

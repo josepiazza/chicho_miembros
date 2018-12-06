@@ -21,9 +21,32 @@ class ch_miembro_pago extends ch_core{
     protected $vencimiento;
     protected $medio_pago;
     protected $monto;
+    protected $item;
     protected $nombre_tabla = "ch_miembro_pagos";
     
-    
+    protected function get_campo_id() {
+        return "id";
+    }
+    function getItem() {
+        return $this->item;
+    }
+
+    function setItem($item) {
+        
+        /*
+1 - Socio
+2 - instructor
+         
+         * 
+         *          */
+        
+        $this->item = $item;
+    }
+
+        protected function get_tabla() {
+        return $this->nombre_tabla;
+    }
+
     function getId() {
         return $this->id;
     }

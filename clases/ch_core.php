@@ -15,7 +15,10 @@ namespace chicho\miembros\clases;
  */
 abstract class ch_core  {
     //put your code here
-    
+    abstract protected function get_tabla();
+    abstract protected function get_campo_id();
+
+
     abstract public function get_lista( $filtro, $pagina = 1 );
     
     protected function existo($id, $campo, $tabla){
@@ -36,11 +39,36 @@ abstract class ch_core  {
             $rta .= "<tr>";
             foreach( $row as $campo ){
                 $rta .= "<td>".$campo."</td>";
-            }
-            $rta.="</tr>";            
+            }      
         }
         $rta .= "</tbody></table>";
         return $rta;
     }
     
+    public function buscar_nivel($id_nivel){
+        global $wpdb;
+        $sql = "SELECT * FROM wp_ch_miembro_nivel WHERE id = $id_nivel";
+        $rta = $wpdb->get_results( $sql );
+        return $rta[0]->nivel;
+    }
+    public function buscar_nivel_instructor($id_nivel){
+        global $wpdb;
+        $sql = "SELECT * FROM wp_ch_miembro_nivel_instructor WHERE id = $id_nivel";
+        $rta = $wpdb->get_results( $sql );
+        return $rta[0]->nivel;
+    }
+    
+    public function get_lista_nivel(){
+        global $wpdb;
+        $sql = "SELECT * FROM wp_ch_miembro_nivel";
+        $rta = $wpdb->get_results( $sql );
+        return $rta;
+    }
+    
+    public function get_lista_nivel_instructor(){
+        global $wpdb;
+        $sql = "SELECT * FROM wp_ch_miembro_nivel_instructor";
+        $rta = $wpdb->get_results( $sql );
+        return $rta;
+    }
 }

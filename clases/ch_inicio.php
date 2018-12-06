@@ -32,7 +32,10 @@ class ch_inicio {
     
     public function crearMenu(){
        add_menu_page("CH_Miembros", "Miembros", "manage_options", "ch_menu_administrador", [$this, "main_menu" ]);
-       add_submenu_page("ch_menu_administrador", "Todos los miembros", "Todos los miembros", "manage_options", "sub_menu", [$this, "operar_miembros"]);
+       add_submenu_page("ch_menu_administrador", "Todos los miembros", "Todos los miembros", "manage_options", "listado_miembros", [$this, "operar_miembros"]);
+       
+       add_submenu_page("ch_menu_administrador", "Importar", "Importar", "manage_options", "importar_listado", [$this, "importar_listado"]);
+      
     }
 
     
@@ -43,8 +46,7 @@ class ch_inicio {
     public function operar_miembros(){
         print "<h2>OperarMiembros</h2>";
         $miembros = new ch_miembro_usuarios();
-        $rta = $miembros->get_tabla_html(1);
-        print_r($rta);
+        print $miembros->salida_web($_REQUEST);
     }
     
     public function redirect() {
@@ -165,6 +167,12 @@ class ch_inicio {
     public function mostrar_carnet_miembro(){
         QRcode::png('PHP QR Code :)', "imagen.png");
         print "<img src='".get_site_url()."/imagen.png'>";
+    }
+    
+    public function importar_listado(){
+        print "<h2>Importar Miembros</h2>";
+        $miembros = new ch_miembro_usuarios();
+        print $miembros->importar_listado($_REQUEST);  
     }
 
 }

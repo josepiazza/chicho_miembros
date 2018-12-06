@@ -41,6 +41,7 @@ function crearEstructuraDeDatos(){
             user_id INT,
             tipo_documento INT NOT NULL, 
             numero_documento varchar(15),
+            domicilio varchar(100),
             localidad varchar(50),
             nivel INT , 
             nivel_instructor INT ,
@@ -56,9 +57,26 @@ function crearEstructuraDeDatos(){
             id int NOT NULL AUTO_INCREMENT, 
             user_id INT,
             fecha_pago date,
+            item int not null,
             vencimiento date,
             medio_pago varchar(20),
             monto DECIMAL(5,2),
+            UNIQUE KEY id (id)
+            );";
+    dbDelta( $sql );
+    $sql = "create table IF NOT EXISTS ".$wpdb->prefix."wp_ch_importar(
+            id int NOT NULL AUTO_INCREMENT,
+            nro_socio varchar(100),
+            apellido varchar(100),
+            nombre varchar(100),
+            nivel varchar(100),
+            carnet varchar(100),
+            nivel_instructor varchar(100),
+            campo_07 varchar(100),
+            dni varchar(100),
+            email varchar(100),
+            estado varchar(10),
+            error varchar(100),
             UNIQUE KEY id (id)
             );";
     dbDelta( $sql );
