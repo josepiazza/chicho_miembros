@@ -103,7 +103,7 @@ class ch_miembro_pago extends ch_core{
     public function guardar(){
         global $wpdb;
         
-        if(!empty($this->id)){
+        if(!empty($this->user_id)){
 
 
             $insert = [
@@ -114,7 +114,7 @@ class ch_miembro_pago extends ch_core{
                 "monto"=>$this->monto 
             ];
             $format = ["%d", "%s", "%s", "%s", "%f"];
-            if( $this->existo($this->id, "id", $wpdb->prefix.$this->nombre_tabla) ){
+            if( $this->existo($this->user_id, "id", $wpdb->prefix.$this->nombre_tabla) ){
                 $where = ["id"=>$this->id];
                 return $wpdb->update($wpdb->prefix.$this->nombre_tabla, $insert, $where, $format);
             }else{

@@ -55,11 +55,13 @@ class ch_miembro_usuarios extends ch_core{
 
             $insert = [
                 "user_id"=>( $this->user_id ),
-                "tipo_documento"=>( (!empty($this->tipo_documento))?$this->tipo_documento:'null' ),
+                "tipo_documento"=>( (!empty($this->tipo_documento))?$this->tipo_documento:null ),
                 "numero_documento"=>( (!empty($this->documento))?$this->documento:'' ),
                 "localidad"=>( (!empty($this->localidad))?$this->localidad:'' ),
+                "nivel"=>( (!empty($this->nivel) && $this->nivel != 0)?$this->nivel:null ),
+                "nivel_instructor"=>( (!empty($this->nivel_instructor) && $this->nivel_instructor != 0)?$this->nivel_instructor:null )
             ];
-            $format = ["%d", "%d", "%s", "%s"];
+            $format = ["%d", "%d", "%s", "%s", "%d", "%d"];
             if( $this->existo($this->user_id, "user_id", $wpdb->prefix.$this->nombre_tabla) ){
                 $where = ["user_id"=>$this->user_id];
                 return $wpdb->update($wpdb->prefix.$this->nombre_tabla, $insert, $where, $format);
@@ -272,7 +274,7 @@ RTA;
                         "estado" => $estado,
                         "error" => $error
                     ];
-                    $wpdb->insert($wpdb->prefix."ch_importar", $insert, $format);
+                    $wpdb->insert($wpdb->prefix."ch_importar", $insert);
                     
                 }
                 break;
@@ -289,8 +291,8 @@ RTA;
                         continue;
                     }
                         $userdata = ['user_login'=>$fila->email,
-                                    'user_email'=>$fila->email, 
-                                    'user_pass'=>$fila->apellido.$fila->nro_socio,
+                                    'user_email'=>$fila->apellido.$fila->nro_socio, 
+                                    'user_pass'=>time(),
                             ];
                    
 //                    $userdata = ['user_login', 'user_email', 'user_pass'];
@@ -330,17 +332,29 @@ RTA;
                         $mes = $this->getMesNumero($fecha[0]);
 
                             $anio = "20".$fecha[1];
-                            $fecha_socio = "1/{$mes}/{$anio}";
+                            $fecha_socio = "{$anio}/{$mes}/1";
+                            $fecha_vencimiento = ($anio+1)."/{$mes}/1";
                             $carnet_socio = new ch_miembro_pago();
                             $carnet_socio->setUser_id($user_id);
-                            $carnet_socio->setVencimiento($fecha_socio);
+                            $carnet_socio->setFecha_pago($fecha_socio);
+                            $carnet_socio->setVencimiento($fecha_vencimiento);
 
                         if( empty( $fila->nivel_instructor ) ){
                             $carnet_socio->setItem(1);
                         }else{
                             $carnet_socio->setItem(2);
                         }
-                        $carnet_socio->guardar();
+                        $rta_carnet = $carnet_socio->guardar();
+                        print "Respuesta Carnet:<br/>";
+                        print_r($rta_carnet);
+                        print "<br/>=========================<br/>";
+                        if( !is_numeric($rta_carnet) ){
+                            $error = ["estado"=>"P",
+                                      "error"=>"No Cargo el pago"
+                                ];
+                            $wpdb->update($wpdb->prefix."ch_importar", $error, ["nro_socio" => $fila->nro_socio]);
+                            continue;
+                        }
                         
                         $succes = ["estado"=>"P"];
                         $wpdb->update($wpdb->prefix."ch_importar", $succes, ["nro_socio" => $fila->nro_socio]);
@@ -363,9 +377,7 @@ RTA;
             default:
                  $rta = <<<RTA
    <form action="?page=importar_listado&opt=paso1" method="post">
-<div> <textarea name="archivo" cols=75 rows=15>
- 
-   </textarea>  </div>
+<div> <textarea name="archivo" cols=75 rows=15></textarea>  </div>
       <input type="submit" value="enviar"/>
    </form>  
        <hr/>
