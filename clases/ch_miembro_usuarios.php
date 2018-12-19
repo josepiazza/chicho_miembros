@@ -3,6 +3,7 @@
 namespace chicho\miembros\clases;
 use chicho\miembros\clases\ch_core;
 use chicho\miembros\clases\ch_miembro_pago;
+use WP_User_Query;
 
 /**
  * Description of ch_miembro_usuarios
@@ -80,10 +81,70 @@ class ch_miembro_usuarios extends ch_core{
     public function set_nivel($valor){ $this->nivel = $valor; }
     public function set_nivel_instructor($valor){ $this->nivel_instructor = $valor; }
     
-    public function get_lista($filtro, $page=1){
+    
+  
+    private function getUsuarios($search_term){
         
+    $args = array (
+//    'search'     => '*' . esc_attr( $search_term ) . '*',
+    'meta_query' => array(
+        'relation' => 'OR',
+        array(
+            'key'     => 'first_name',
+            'value'   => $search_term,
+            'compare' => 'LIKE'
+        ),
+        array(
+            'key'     => 'last_name',
+            'value'   => $search_term,
+            'compare' => 'LIKE'
+        )
+    )
+    );
+    // Create the WP_User_Query object
+    $wp_user_query = new WP_User_Query( $args );
+
+    // Get the results
+    $rta = $wp_user_query->get_results();   
+    return $rta;
+    }
+    
+    public function get_lista($filtro, $page=1){
+   
         global $wpdb;
-        $sql = "SELECT * FROM ".$wpdb->prefix."ch_miembros"; //$wpdb->prepare();
+        $where = [];
+        switch( $filtro["tipo"] ){
+            case 1:
+                $where[] = "(nivel is not null AND nivel_instructor is null) ";
+                break;
+            case 2:
+                $where[] = "nivel_instructor is not null ";
+                break;
+        }
+        //if(!empty($filtro["nombre"])) $where[] = " nombre ilike '%{$filtro["nombre"]}%' ";
+        //if(!empty($filtro["apellido"])) $where[] = " apellido ilike '%{$filtro["apellido"]}%' ";
+        
+        
+        if( !empty( $filtro["apellido"]) ){
+            $rt =  $this->getUsuarios( $filtro["apellido"] );
+            if( !empty($rt) ){
+                foreach($rt as $f){
+                    $in[]  = $f->data->ID;
+                }
+                $where[] = " user_id IN (". implode(" , ", $in) .")";
+            }else{
+                $where[] = " 1=2 ";
+            }
+        }
+        
+        if(!empty($where)){
+            $where = " WHERE ".implode(" and ", $where);
+        }else{
+            $where = null;
+        }
+        
+        $sql = "SELECT * FROM ".$wpdb->prefix."ch_miembros $where"; //$wpdb->prepare();
+//        print $sql;
         $rta = $wpdb->get_results( $sql );
         return $rta;
     }
@@ -108,8 +169,8 @@ class ch_miembro_usuarios extends ch_core{
         $this->nivel_instructor_desc = $this->buscar_nivel_instructor($this->nivel_instructor);
         $this->nombre = get_user_meta($this->user_id,"first_name", true);
         $this->apellido = get_user_meta($this->user_id,"last_name",true);
-        $this->nickname = get_user_meta($row->user_id, "nickname", true);
-        $this->email = get_user_option("user_email", $row->user_id);
+        $this->nickname = get_user_meta($this->user_id, "nickname", true);
+        $this->email = get_user_option("user_email", $this->user_id);
     }
     
     public function get_tipo_documento(){return $this->tipo_documento ;}
@@ -123,9 +184,33 @@ class ch_miembro_usuarios extends ch_core{
         $pago->guardar();
     }
     
-    public function get_tabla_html($filtro, $pagina = 1){
-        $lista = $this->get_lista($filtro, $pagina = 1);
-        $rta = "<table class='wp-list-table widefat fixed striped posts'><tbody id='the-list'>";
+    public function get_tabla_html($filtroLista, $pagina = 1){
+        
+        if( isset($filtroLista["btn_limpiar"]) ){
+            $_SESSION["filtro_ch_miembro"] = null;
+        }
+        if( isset($filtroLista["btn_filtrar"]) ){
+            $_SESSION["filtro_ch_miembro"] = $filtroLista;
+        }
+        
+        if( !empty( $_SESSION["filtro_ch_miembro"] ) ){
+            $filtro= $_SESSION["filtro_ch_miembro"];       
+            $lista = $this->get_lista($filtro, $pagina = 1);
+        }else{
+            $lista = [];
+        }
+        $rta=<<<FIL
+                <form name="filtro" method="post" action="?page=listado_miembros&filtro=true">
+   Clave Búsqueda: <input name="apellido" value="{$filtro["apellido"]}"> 
+   Tipo: <select name="tipo" id="idTipoNavegante"><option value=0>Todos</option><option value=1>Navegante</option><option value=2>Instructor</option></select>
+   <input type="submit" name="btn_filtrar" value="Filtrar"><input name="btn_limpiar" type="submit" value="limpiar">
+   <script>
+   document.getElementById("idTipoNavegante").value= "{$filtro["tipo"]}"
+   </script>
+   </form><hr/>
+FIL;
+        
+        $rta .= "<table class='wp-list-table widefat fixed striped posts'><tbody id='the-list'>";
         foreach( $lista as $row ){ 
             $nombre = get_user_meta($row->user_id,"first_name", true);
             $apellido = get_user_meta($row->user_id,"last_name",true);
@@ -148,7 +233,7 @@ class ch_miembro_usuarios extends ch_core{
     protected function get_detalle($user_id){
 //        $this->buscar_usuario($user_id);
         $rta = <<<RTA
- <table>
+ <table >
     <tr>
         <td>Nombre:</td><td>{$this->nombre}</td>
     </tr>
@@ -176,8 +261,26 @@ RTA;
         return $rta;
     }
 
-    public function get_editar($user_id){
+    public function get_editar($user_id, $request){
         $this->buscar_usuario($user_id);
+//        print_r($request);
+        
+// ( [page] => listado_miembros [opt] => editar [id] => 2638 [opt2] => [fecha] => dddd [tipo_medio_pago] => 1 [item] => 1 [monto] => dd [referencia] => dd )         
+        
+        
+        if( $request["opt2"] == "guardarPago" ){
+            print_r($request);
+            
+            $pago = new ch_miembro_pago();
+            $pago->setUser_id($this->user_id);
+            $pago->setMedio_pago($request["tipo_medio_pago"]);
+            $pago->setFecha_pago($request["fecha"]);
+            $pago->setItem($request["item"]);
+            $pago->setReferencia($request["referencia"]);
+            $pago->setMonto($request["monto"]);
+            $pago->guardar();
+        }
+        
         $nivel = $this->get_lista_nivel();
         $nivel_instructor = $this->get_lista_nivel_instructor();
         
@@ -195,6 +298,26 @@ RTA;
         }
          $combo_nivel_instructor .= "</select>";
         
+         
+        $pago = new ch_miembro_pago();
+        $pagos = $pago->get_lista( ["user_id" => $this->user_id]);
+        $rtaPagos ="<button onClick='mostrarFormularioMedioPago()'>Nuevo Pago</button>";
+        $pago->setUser_id( $this->user_id );
+        $rtaPagos .= $pago->getFormulario();
+        $rtaPagos .= "<table style='width:80%' class='wp-list-table widefat fixed striped posts'><tr><td>Fcha Pago</td><td>Medio Pago</td>"
+                . "<td>Vencimiento</td><td>Importe</td><td>Item</td></tr>";
+        
+        foreach( $pagos as $p ){
+            $rtaPagos .= "<tr>";
+            $rtaPagos .= "<td>".$p->fecha_pago."</td>";
+            $rtaPagos .= "<td>".$p->medio_pago."</td>";
+            $rtaPagos .= "<td>".$p->vencimiento."</td>";
+            $rtaPagos .= "<td>".$p->monto."</td>";
+            $rtaPagos .= "<td>".$p->item."</td>";
+            $rtaPagos .= "</tr>";
+            
+        }
+        $rtaPagos .= "</table>";
         $rta = <<<RTA
     
   <table>
@@ -205,7 +328,7 @@ RTA;
         <td>Apellido:</td><td>{$this->apellido}</td>
     </tr>
     <tr>
-        <td>Email:</td><td>{$this->email}</td>
+        <td>Email:</td><td>---  {$this->email}</td>
     </tr>
     <tr>
         <td>Nivel:</td><td>{$combo_nivel}</td>
@@ -213,13 +336,15 @@ RTA;
     <tr>
         <td>Nivel Instructor:</td><td>{$combo_nivel_instructor}</td>
     </tr>
+    <tr><td colspan="2"> $rtaPagos </td></tr>
 </table>    
 <script>
 
-        document.getElementById("nivel").value= {$this->nivel};
-        document.getElementById("nivel_instructor").value= {$this->nivel_instructor};
+        document.getElementById("nivel").value= "{$this->nivel}";
+        document.getElementById("nivel_instructor").value= "{$this->nivel_instructor}";
         
 </script>
+        
 RTA;
         return $rta;
     }
@@ -230,10 +355,10 @@ RTA;
                 $rta = $this->get_detalle($request["id"]);
                 break;
             case "editar";
-                $rta = $this->get_editar($request["id"]);
+                $rta = $this->get_editar($request["id"], $request);
                 break;
             default:
-                 $rta = $this->get_tabla_html(null);
+                $rta = $this->get_tabla_html($request);
                 break;
         }
             
@@ -261,13 +386,21 @@ RTA;
                         $estado = "E";
                         $error = "Sin email";
                     }
+                    
+                    $nivel_instructor = 0;
+                    $nivel_instructor = (strpos($item[5], "4"))?4:$nivel_instructor;
+                    $nivel_instructor = (strpos($item[5], "3"))?3:$nivel_instructor;
+                    $nivel_instructor = (strpos($item[5], "2"))?2:$nivel_instructor;
+                    $nivel_instructor = (strpos($item[5], "1"))?1:$nivel_instructor;
+                    
+                    
                     $insert = [
                         "nro_socio" => $item[0],
                         "apellido" => $item[1] ,
                         "nombre" => $item[2] ,
                         "nivel" => intval($item[3]),
                         "carnet" => $item[4],
-                        "nivel_instructor" => intval($item[5]),
+                        "nivel_instructor" =>$nivel_instructor,
                         "campo_07" => $direccion,
                         "email" => $mail,
                         "dni" => $item[7],
@@ -290,8 +423,8 @@ RTA;
                         $wpdb->update($wpdb->prefix."ch_importar", $error, ["nro_socio" => $fila->nro_socio]);
                         continue;
                     }
-                        $userdata = ['user_login'=>$fila->email,
-                                    'user_email'=>$fila->apellido.$fila->nro_socio, 
+                        $userdata = ['user_login'=>$fila->apellido.$fila->nro_socio,
+                                    'user_email'=>$fila->email, 
                                     'user_pass'=>time(),
                             ];
                    
@@ -312,7 +445,7 @@ RTA;
                     $nu->set_user_id($user_id);
                     $nu->setId( $fil->nro_socio );
                     $nu->set_apellido( $fila->apellido );
-                    $nu->set_nombre( $fil->nombre );
+                    $nu->set_nombre( $fila->nombre );
                     $nu->set_tipo_documento(1);
                     $nu->set_documento( $fila->dni );
                     $nu->set_nivel( $fila->nivel );
@@ -374,7 +507,20 @@ RTA;
 
 //                $rta = "ss";
                 break;
+            case "borrar":
+                print '  <form action="?page=importar_listado&opt=borrar" method="post">
+      <input type="submit" value="Borrar"/>
+   </form> ';
+                $sql="SELECT user_id FROM wordpress.wp_ch_miembros";
+                $rs = $wpdb->get_results($sql);
+                foreach($rs as $fila){
+                    print "borrando: ".$fila->user_id;
+                    print wp_delete_user($fila->user_id);
+                    print "<hr>";
+                }
+                break;
             default:
+                print strpos("N4 - EXHAMINER", "4");
                  $rta = <<<RTA
    <form action="?page=importar_listado&opt=paso1" method="post">
 <div> <textarea name="archivo" cols=75 rows=15></textarea>  </div>
@@ -383,6 +529,10 @@ RTA;
        <hr/>
   <form action="?page=importar_listado&opt=procesar" method="post">
       <input type="submit" value="Procesar"/>
+   </form>  
+       <hr/>
+  <form action="?page=importar_listado&opt=borrar" method="post">
+      <input type="submit" value="Borrar"/>
    </form>  
 RTA;
                 break;
@@ -406,4 +556,56 @@ RTA;
         }
         
     }
+    
+    private function getPagos(){
+        
+    }
+
+public function get_tabla_html_frontend($filtroLista, $pagina = 1){
+        
+        if( isset($filtroLista["btn_limpiar"]) ){
+            $_SESSION["filtro_ch_miembro"] = null;
+        }
+        if( isset($filtroLista["btn_filtrar"]) ){
+            $_SESSION["filtro_ch_miembro"] = $filtroLista;
+        }
+        
+        if( !empty( $_SESSION["filtro_ch_miembro"] ) ){
+            $filtro= $_SESSION["filtro_ch_miembro"];    
+            $filtro["tipo"] = 2; //siempre instructores
+            $lista = $this->get_lista($filtro, $pagina = 1);
+        }else{
+            $lista = [];
+        }
+        $rta=<<<FIL
+                <form name="filtro" method="post" action="?filtro=true">
+   Clave Búsqueda: <input name="apellido" value="{$filtro["apellido"]}"> 
+   <input type="submit" name="btn_filtrar" value="Filtrar"><input name="btn_limpiar" type="submit" value="limpiar">
+   <script>
+   document.getElementById("idTipoNavegante").value= "{$filtro["tipo"]}"
+   </script>
+   </form><hr/>
+FIL;
+        
+        $rta .= "<table class='wp-list-table widefat fixed striped posts'><tbody id='the-list'>";
+        foreach( $lista as $row ){ 
+            $nombre = get_user_meta($row->user_id,"first_name", true);
+            $apellido = get_user_meta($row->user_id,"last_name",true);
+            $nickname = get_user_meta($row->user_id, "nickname", true);
+            $email = get_user_option("user_email", $row->user_id);
+            $rta .= "<tr>";
+                $rta .= "<td>".$nickname."</td>";
+                $rta .= "<td>".$nombre."</td>";
+                $rta .= "<td>".$apellido."</td>";
+                $rta .= "<td>".$email."</td>";
+            
+//            $rta.="<td><a href='?page=listado_miembros&opt=detalles&id=".$row->user_id."'>Detalles</a></td>";
+//            $rta.="<td><a href='?page=listado_miembros&opt=editar&id=".$row->user_id."'>Editar</a></td>";
+            $rta.="</tr>";            
+        }
+        $rta .= "</tbody></table>";
+        return $rta;
+    }
+    
+    
 }

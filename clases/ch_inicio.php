@@ -28,14 +28,22 @@ class ch_inicio {
         
         
         add_shortcode( 'ch_miembro_carnet', [$this, 'mostrar_carnet_miembro'] );
+        add_shortcode('ch_miembro_listado_instructores', [$this, 'mostrar_listado_instructores']);
     } 
     
+    public function mostrar_listado_instructores(){
+        $miembros = new ch_miembro_usuarios();
+        print $miembros->get_tabla_html_frontend($_REQUEST);
+    }
+    
     public function crearMenu(){
-       add_menu_page("CH_Miembros", "Miembros", "manage_options", "ch_menu_administrador", [$this, "main_menu" ]);
-       add_submenu_page("ch_menu_administrador", "Todos los miembros", "Todos los miembros", "manage_options", "listado_miembros", [$this, "operar_miembros"]);
+        
+        add_menu_page("CH_Miembros", "Miembros", "manage_options", "ch_menu_administrador", [$this, "main_menu" ]);
+        add_submenu_page("ch_menu_administrador", "Todos los miembros", "Todos los miembros", "manage_options", "listado_miembros", [$this, "operar_miembros"]);
        
-       add_submenu_page("ch_menu_administrador", "Importar", "Importar", "manage_options", "importar_listado", [$this, "importar_listado"]);
+        add_submenu_page("ch_menu_administrador", "Importar", "Importar", "manage_options", "importar_listado", [$this, "importar_listado"]);
       
+        
     }
 
     

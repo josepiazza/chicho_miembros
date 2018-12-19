@@ -36,6 +36,12 @@ function crearEstructuraDeDatos(){
             UNIQUE KEY id (id)
             );";
     dbDelta( $sql );
+    $sql = "create table IF NOT EXISTS ".$wpdb->prefix."ch_miembro_medio_pago(
+            id int NOT NULL AUTO_INCREMENT, 
+            tipo_medio_pago varchar(50),
+            UNIQUE KEY id (id)
+            )";
+    dbDelta( $sql );
     $sql = "CREATE TABLE IF NOT EXISTS ".$wpdb->prefix."ch_miembros (
             id int NOT NULL AUTO_INCREMENT,
             user_id INT,
@@ -59,9 +65,11 @@ function crearEstructuraDeDatos(){
             fecha_pago date,
             item int not null,
             vencimiento date,
-            medio_pago varchar(20),
+            medio_pago int,
+            referencia varchar(100),
             monto DECIMAL(5,2),
-            UNIQUE KEY id (id)
+            UNIQUE KEY id (id),
+            FOREIGN KEY (medio_pago) REFERENCES ".$wpdb->prefix."ch_miembro_medio_pago(id) ON DELETE RESTRICT
             );";
     dbDelta( $sql );
     $sql = "create table IF NOT EXISTS ".$wpdb->prefix."wp_ch_importar(
@@ -96,11 +104,17 @@ function cargarDatosIniciales(){
         
     	$wpdb->insert( "".$wpdb->prefix."ch_miembro_tipo_documento", ["tipo_documento"=> "DNI"]);
         
+    	$wpdb->insert( "".$wpdb->prefix."ch_miembro_medio_pago", ["tipo_medio_pago"=> "Mercado Pago"]);
+    	$wpdb->insert( "".$wpdb->prefix."ch_miembro_medio_pago", ["tipo_medio_pago"=> "Tarjeta"]);
+    	$wpdb->insert( "".$wpdb->prefix."ch_miembro_medio_pago", ["tipo_medio_pago"=> "Efectivo"]);
 }
 
 register_activation_hook( __FILE__, 'crearEstructuraDeDatos' );
 //register_activation_hook( __FILE__, 'cargarDatosIniciales' );
 
+    if(!session_id()) {
+        session_start();
+    }
 
 function the_url( $url ) {
     return get_bloginfo( 'url' );
