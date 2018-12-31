@@ -423,9 +423,9 @@ RTA;
                         $wpdb->update($wpdb->prefix."ch_importar", $error, ["nro_socio" => $fila->nro_socio]);
                         continue;
                     }
-                        $userdata = ['user_login'=>$fila->apellido.$fila->nro_socio,
+                        $userdata = ['user_login'=>$fila->email,
                                     'user_email'=>$fila->email, 
-                                    'user_pass'=>time(),
+                                    'user_pass'=>$fila->apellido.$fila->nro_socio,
                             ];
                    
 //                    $userdata = ['user_login', 'user_email', 'user_pass'];
@@ -594,10 +594,10 @@ FIL;
             $nickname = get_user_meta($row->user_id, "nickname", true);
             $email = get_user_option("user_email", $row->user_id);
             $rta .= "<tr>";
-                $rta .= "<td>".$nickname."</td>";
                 $rta .= "<td>".$nombre."</td>";
                 $rta .= "<td>".$apellido."</td>";
                 $rta .= "<td>".$email."</td>";
+                $rta .= "<td>Instructor nivel ".$row->nivel_instructor."</td>";
             
 //            $rta.="<td><a href='?page=listado_miembros&opt=detalles&id=".$row->user_id."'>Detalles</a></td>";
 //            $rta.="<td><a href='?page=listado_miembros&opt=editar&id=".$row->user_id."'>Editar</a></td>";

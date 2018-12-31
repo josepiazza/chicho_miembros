@@ -14,9 +14,19 @@ namespace chicho\miembros\clases;
  * @author chicho
  */
 class ch_miembro_carnet {
-    //put your code here
-    
+    protected $miembro;
+
+    public function setMiembro($miembro){
+        $this->miembro = $miembro;
+    }
+
     public function get_carnet(){
-        
+       $rta = <<<RTA
+               
+<table>
+
+   
+</table> 
+RTA;
     }
 }

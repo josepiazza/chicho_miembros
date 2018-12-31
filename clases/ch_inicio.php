@@ -15,6 +15,11 @@ class ch_inicio {
     function __construct() {
         add_action("admin_menu", array($this, "crearMenu"));
 //        $this->crearMenu();
+ 
+        
+        
+
+        add_action( 'admin_enqueue_scripts', [$this, "cargar_js_css"] );
         
         add_action('wp_login', array($this, 'redirect'));  
         add_action('wp_logout', array($this, 'redirect'));  
@@ -23,13 +28,21 @@ class ch_inicio {
         add_filter( 'registration_errors', [$this, 'registrar_usuario_errors'], 10, 3 );
         add_action( "user_new_form", [$this, "formulario_miembro_admin"], 10, 3 );
         add_action( "edit_user_profile", [$this, "formulario_miembro_admin"], 10, 3 );
+        add_action( "show_user_profile", [$this, "formulario_miembro_admin"], 10, 3 );
         add_action("edit_user_profile_update",  [$this, "registrar_usuario"]);
+        add_action("personal_options_update",  [$this, "registrar_usuario"]);
         
         
         
         add_shortcode( 'ch_miembro_carnet', [$this, 'mostrar_carnet_miembro'] );
         add_shortcode('ch_miembro_listado_instructores', [$this, 'mostrar_listado_instructores']);
     } 
+    
+    public function cargar_js_css() {
+        wp_enqueue_media();
+        wp_enqueue_style('sua-css-style', plugins_url('css/style.css', __FILE__), array(), null);
+//        wp_enqueue_script('sua-js-custom', plugins_url('js/scripts.js', __FILE__), array(), '1.3', true); // Ejemplo para cargar un JS
+    }
     
     public function mostrar_listado_instructores(){
         $miembros = new ch_miembro_usuarios();
@@ -115,6 +128,9 @@ class ch_inicio {
         $user->set_tipo_documento($_POST["tipo_documento"]);
         $user->set_documento($_POST["documento"]);
         $user->set_localidad($_POST["localidad"]);
+        print "<h1>Files</h1>";
+        print_r($_FILES);
+        
         return $user->guardar();
 
     }
@@ -167,6 +183,8 @@ class ch_inicio {
             <label for="localidad"><?php _e( 'Localidad' ) ?><br />
                 <input type="text" name="localidad" id="localidad" class="input" value="<?php echo esc_attr(  $localidad  ); ?>" size="25" /></label>
         </p>
+
+        
         <?php
         
         
