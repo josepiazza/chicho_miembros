@@ -58,15 +58,26 @@ class ch_miembro_usuarios extends ch_core{
                 "user_id"=>( $this->user_id ),
                 "tipo_documento"=>( (!empty($this->tipo_documento))?$this->tipo_documento:null ),
                 "numero_documento"=>( (!empty($this->documento))?$this->documento:'' ),
-                "localidad"=>( (!empty($this->localidad))?$this->localidad:'' ),
-                "nivel"=>( (!empty($this->nivel) && $this->nivel != 0)?$this->nivel:null ),
-                "nivel_instructor"=>( (!empty($this->nivel_instructor) && $this->nivel_instructor != 0)?$this->nivel_instructor:null )
+                "localidad"=>( (!empty($this->localidad))?$this->localidad:'' )
             ];
-            $format = ["%d", "%d", "%s", "%s", "%d", "%d"];
+            $format= ["%d", "%d", "%s", "%s"];
+            
+            if(!empty($this->nivel)){
+                $insert["nivel"] = $this->nivel;
+                $format[] = "%d";
+            }
+            
+            if(!empty($this->nivel_instructor)){
+                $insert["nivel_instructor"] = $this->nivel_instructor;
+                $format[] = "%d";
+            }
+            
+//            $format = ["%d", "%d", "%s", "%s", "%d", "%d"];
             if( $this->existo($this->user_id, "user_id", $wpdb->prefix.$this->nombre_tabla) ){
                 $where = ["user_id"=>$this->user_id];
                 return $wpdb->update($wpdb->prefix.$this->nombre_tabla, $insert, $where, $format);
             }else{
+                $isert["user_id"]= $this->user_id ;
                 return $wpdb->insert($wpdb->prefix.$this->nombre_tabla, $insert, $format);
             }
         }
@@ -85,22 +96,31 @@ class ch_miembro_usuarios extends ch_core{
   
     private function getUsuarios($search_term){
         
-    $args = array (
-//    'search'     => '*' . esc_attr( $search_term ) . '*',
-    'meta_query' => array(
-        'relation' => 'OR',
-        array(
-            'key'     => 'first_name',
-            'value'   => $search_term,
-            'compare' => 'LIKE'
-        ),
-        array(
-            'key'     => 'last_name',
-            'value'   => $search_term,
-            'compare' => 'LIKE'
-        )
-    )
-    );
+        foreach ($search_term as $key => $value) {
+            if( $key == "parametrosBusqueda" ){
+                $a = explode(" ", $value);
+                foreach( $a as $v ){
+                    
+                   $meta_query = array(
+                       array(
+                           'key'     => 'first_name',
+                           'value'   => $v,
+                           'compare' => 'LIKE'
+                       ),
+                       array(
+                           'key'     => 'last_name',
+                           'value'   => $v,
+                           'compare' => 'LIKE'
+                       )
+                  
+                   ); 
+                }
+                $meta_query["relation"] = "OR";
+            }
+        }
+        $args = ["meta_query" => $meta_query];  
+        
+
     // Create the WP_User_Query object
     $wp_user_query = new WP_User_Query( $args );
 
@@ -113,20 +133,19 @@ class ch_miembro_usuarios extends ch_core{
    
         global $wpdb;
         $where = [];
-        switch( $filtro["tipo"] ){
-            case 1:
-                $where[] = "(nivel is not null AND nivel_instructor is null) ";
-                break;
-            case 2:
-                $where[] = "nivel_instructor is not null ";
-                break;
+        if(!empty($filtro["tipo"])){
+            switch( $filtro["tipo"] ){
+                case 1:
+                    $where[] = "(nivel is not null AND nivel_instructor is null) ";
+                    break;
+                case 2:
+                    $where[] = "nivel_instructor is not null ";
+                    break;
+            }
         }
-        //if(!empty($filtro["nombre"])) $where[] = " nombre ilike '%{$filtro["nombre"]}%' ";
-        //if(!empty($filtro["apellido"])) $where[] = " apellido ilike '%{$filtro["apellido"]}%' ";
         
-        
-        if( !empty( $filtro["apellido"]) ){
-            $rt =  $this->getUsuarios( $filtro["apellido"] );
+        if( !empty( $filtro) ){
+            $rt =  $this->getUsuarios( $filtro );
             if( !empty($rt) ){
                 foreach($rt as $f){
                     $in[]  = $f->data->ID;
@@ -186,6 +205,7 @@ class ch_miembro_usuarios extends ch_core{
     
     public function get_tabla_html($filtroLista, $pagina = 1){
         
+
         if( isset($filtroLista["btn_limpiar"]) ){
             $_SESSION["filtro_ch_miembro"] = null;
         }
@@ -199,13 +219,16 @@ class ch_miembro_usuarios extends ch_core{
         }else{
             $lista = [];
         }
+        
+        $parametrosBusqueda = (!empty($filtro["parametrosBusqueda"]))?$filtro["parametrosBusqueda"]:"";
+        $tipo = (!empty($filtro["tipo"]))?$filtro["tipo"]:"";       
         $rta=<<<FIL
-                <form name="filtro" method="post" action="?page=listado_miembros&filtro=true">
-   Clave Búsqueda: <input name="apellido" value="{$filtro["apellido"]}"> 
+                <form name="filtro" method="post" action="?page=listado_miembros&filtro=true">lslsls
+   Clave Búsqueda: <input name="parametrosBusqueda" value="{$parametrosBusqueda}"> 
    Tipo: <select name="tipo" id="idTipoNavegante"><option value=0>Todos</option><option value=1>Navegante</option><option value=2>Instructor</option></select>
    <input type="submit" name="btn_filtrar" value="Filtrar"><input name="btn_limpiar" type="submit" value="limpiar">
    <script>
-   document.getElementById("idTipoNavegante").value= "{$filtro["tipo"]}"
+   document.getElementById("idTipoNavegante").value= "{$tipo}"
    </script>
    </form><hr/>
 FIL;
@@ -262,14 +285,15 @@ RTA;
     }
 
     public function get_editar($user_id, $request){
+
         $this->buscar_usuario($user_id);
 //        print_r($request);
-        
+       
 // ( [page] => listado_miembros [opt] => editar [id] => 2638 [opt2] => [fecha] => dddd [tipo_medio_pago] => 1 [item] => 1 [monto] => dd [referencia] => dd )         
         
         
         if( $request["opt2"] == "guardarPago" ){
-            print_r($request);
+//            print_r($request);
             
             $pago = new ch_miembro_pago();
             $pago->setUser_id($this->user_id);
@@ -279,6 +303,11 @@ RTA;
             $pago->setReferencia($request["referencia"]);
             $pago->setMonto($request["monto"]);
             $pago->guardar();
+        }
+        if( $request["opt2"] == "guardarUsuario"){
+            $this->set_nivel($request["nivel"]);
+            $this->set_nivel_instructor($request["nivel_instructor"]);
+            $this->guardar();
         }
         
         $nivel = $this->get_lista_nivel();
@@ -319,7 +348,8 @@ RTA;
         }
         $rtaPagos .= "</table>";
         $rta = <<<RTA
-    
+<form ction="?page=listado_miembros&opt=editar&id={$user_id}" method="post">
+<input type="hidden" name="opt2" value="guardarUsuario" />    
   <table>
     <tr>
         <td>Nombre:</td><td>{$this->nombre}</td>
@@ -336,8 +366,12 @@ RTA;
     <tr>
         <td>Nivel Instructor:</td><td>{$combo_nivel_instructor}</td>
     </tr>
-    <tr><td colspan="2"> $rtaPagos </td></tr>
-</table>    
+</table>   
+ <input type="submit" value="guardar">
+</form>
+<div>
+$rtaPagos    
+</div>
 <script>
 
         document.getElementById("nivel").value= "{$this->nivel}";
@@ -350,16 +384,17 @@ RTA;
     }
     
     public function salida_web($request){
-         switch ($request["opt"]){
-            case "detalles";
-                $rta = $this->get_detalle($request["id"]);
-                break;
-            case "editar";
-                $rta = $this->get_editar($request["id"], $request);
-                break;
-            default:
-                $rta = $this->get_tabla_html($request);
-                break;
+        $request["opt"] = (!empty($request["opt"]))?$request["opt"]:"";
+        switch ($request["opt"]){
+           case "detalles";
+               $rta = $this->get_detalle($request["id"]);
+               break;
+           case "editar";
+               $rta = $this->get_editar($request["id"], $request);
+               break;
+           default:
+               $rta = $this->get_tabla_html($request);
+               break;
         }
             
         return $rta;
@@ -370,6 +405,7 @@ RTA;
         switch ($request["opt"]){
             case "paso1":
                 $archivo = explode("\n", $request["archivo"]);
+                $importados = 0;
                 foreach($archivo as $fila){
                     $item = explode(",", $fila);
                     for($i=0; $i<count($item); $i++){
@@ -393,7 +429,7 @@ RTA;
                     $nivel_instructor = (strpos($item[5], "2"))?2:$nivel_instructor;
                     $nivel_instructor = (strpos($item[5], "1"))?1:$nivel_instructor;
                     
-                    
+                    $dni = preg_split('/[^0-9]+/i', $item[7]);
                     $insert = [
                         "nro_socio" => $item[0],
                         "apellido" => $item[1] ,
@@ -408,14 +444,17 @@ RTA;
                         "error" => $error
                     ];
                     $wpdb->insert($wpdb->prefix."ch_importar", $insert);
-                    
+                    $importados++;
                 }
+                print "importados: $importados";
                 break;
             case "procesar";
 //                remove_action($tag, $function_to_remove);
                 remove_action('user_register', [$this, 'registrar_usuario'] );
-                $sql = "SELECT * FROM ".$wpdb->prefix."ch_importar WHERE estado = 'N' " ;
+                $sql = "SELECT * FROM ".$wpdb->prefix."ch_importar WHERE estado in ('N', 'E') " ;
                 $rs = $wpdb->get_results($sql);
+                $ok = 0;
+                $fail = 0;
                 foreach($rs as $fila){
 
                     if( !is_email($fila->email) ){
@@ -423,27 +462,26 @@ RTA;
                         $wpdb->update($wpdb->prefix."ch_importar", $error, ["nro_socio" => $fila->nro_socio]);
                         continue;
                     }
-                        $userdata = ['user_login'=>$fila->email,
+                        $userdata = ['user_login'=>$fila->dni,
                                     'user_email'=>$fila->email, 
                                     'user_pass'=>$fila->apellido.$fila->nro_socio,
                             ];
-                   
+                            print_r($userdata);
+                            print "********************<br/>";
 //                    $userdata = ['user_login', 'user_email', 'user_pass'];
                     $user_id = wp_insert_user($userdata);
-                    print_r($user_id);
                     if(!is_numeric($user_id) ){
                         $error = ["estado"=>"E",
-                                  "error"=>"Error al dar del alta el usuario"
+                                  "error"=>$user_id->get_error_message()
                             ];
+                            print_r($user_id->get_error_message());
                         $wpdb->update($wpdb->prefix."ch_importar", $error, ["nro_socio" => $fila->nro_socio]);
                         continue;
                     }
                     
-                    print "=======================<br/>";
-                    print_r([$user_id, $userdata]);
                     $nu = new ch_miembro_usuarios();
                     $nu->set_user_id($user_id);
-                    $nu->setId( $fil->nro_socio );
+                    $nu->setId( $fila->nro_socio );
                     $nu->set_apellido( $fila->apellido );
                     $nu->set_nombre( $fila->nombre );
                     $nu->set_tipo_documento(1);
@@ -457,6 +495,7 @@ RTA;
                                   "error"=>"Falla inesperada"
                             ];
                         $wpdb->update($wpdb->prefix."ch_importar", $error, ["nro_socio" => $fila->nro_socio]);
+                        $fail++;
                         continue;
                         /* update tabla con el error y dejar de procesar */
                     }else{
@@ -478,9 +517,6 @@ RTA;
                             $carnet_socio->setItem(2);
                         }
                         $rta_carnet = $carnet_socio->guardar();
-                        print "Respuesta Carnet:<br/>";
-                        print_r($rta_carnet);
-                        print "<br/>=========================<br/>";
                         if( !is_numeric($rta_carnet) ){
                             $error = ["estado"=>"P",
                                       "error"=>"No Cargo el pago"
@@ -491,13 +527,14 @@ RTA;
                         
                         $succes = ["estado"=>"P"];
                         $wpdb->update($wpdb->prefix."ch_importar", $succes, ["nro_socio" => $fila->nro_socio]);
+                        $ok++;
                     }
-                    print "{$item[2]} $fecha_socio  $fecha_instructor";
+
 //                    $carnet_socio = new ch_miembro_pago1();
 //                    $carnet_socio->
 //                    print $nu->get_detalle(1);
                     print "<hr>";     
-                     
+                    print "OK: $ok <br/>Fail: $fail";
                 }
                 
                 $rta = "Procesando";
@@ -511,13 +548,17 @@ RTA;
                 print '  <form action="?page=importar_listado&opt=borrar" method="post">
       <input type="submit" value="Borrar"/>
    </form> ';
-                $sql="SELECT user_id FROM wordpress.wp_ch_miembros";
+                $sql="SELECT user_id FROM ".$wpdb->prefix."ch_miembros";
+//                $sql = "SELECT ID as user_id FROM ".$wpdb->prefix."users WHERE id > 10";
                 $rs = $wpdb->get_results($sql);
                 foreach($rs as $fila){
                     print "borrando: ".$fila->user_id;
                     print wp_delete_user($fila->user_id);
                     print "<hr>";
                 }
+                $wpdb->query("truncate table ".$wpdb->prefix."ch_miembro_pagos");
+                $wpdb->query("truncate table ".$wpdb->prefix."ch_miembros");
+                $wpdb->query("truncate table ".$wpdb->prefix."ch_importar");
                 break;
             default:
                 print strpos("N4 - EXHAMINER", "4");
@@ -573,16 +614,20 @@ public function get_tabla_html_frontend($filtroLista, $pagina = 1){
         if( !empty( $_SESSION["filtro_ch_miembro"] ) ){
             $filtro= $_SESSION["filtro_ch_miembro"];    
             $filtro["tipo"] = 2; //siempre instructores
-            $lista = $this->get_lista($filtro, $pagina = 1);
+            $lista = $this->get_lista($filtroLista, $pagina = 1);
         }else{
             $lista = [];
         }
+        
+        $parametrosBusqueda = (!empty($filtroLista["parametrosBusqueda"]))?$filtroLista["parametrosBusqueda"]:"";
+        $tipo = (!empty($filtroLista["tipo"]))?$filtroLista["tipo"]:"";
+        
         $rta=<<<FIL
                 <form name="filtro" method="post" action="?filtro=true">
-   Clave Búsqueda: <input name="apellido" value="{$filtro["apellido"]}"> 
+   Clave Búsqueda: <input name="parametrosBusqueda" value="{$parametrosBusqueda}"> 
    <input type="submit" name="btn_filtrar" value="Filtrar"><input name="btn_limpiar" type="submit" value="limpiar">
    <script>
-   document.getElementById("idTipoNavegante").value= "{$filtro["tipo"]}"
+   document.getElementById("idTipoNavegante").value= "{$tipo}"
    </script>
    </form><hr/>
 FIL;

@@ -128,8 +128,8 @@ class ch_inicio {
         $user->set_tipo_documento($_POST["tipo_documento"]);
         $user->set_documento($_POST["documento"]);
         $user->set_localidad($_POST["localidad"]);
-        print "<h1>Files</h1>";
-        print_r($_FILES);
+//        print "<h1>Files</h1>";
+//        print_r($_FILES);
         
         return $user->guardar();
 
@@ -184,6 +184,11 @@ class ch_inicio {
                 <input type="text" name="localidad" id="localidad" class="input" value="<?php echo esc_attr(  $localidad  ); ?>" size="25" /></label>
         </p>
 
+        <p>
+            <label for="localidad"><?php _e( 'Localidad' ) ?><br />
+                
+            
+        </p>
         
         <?php
         

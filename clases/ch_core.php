@@ -47,15 +47,23 @@ abstract class ch_core  {
     
     public function buscar_nivel($id_nivel){
         global $wpdb;
-        $sql = "SELECT * FROM wp_ch_miembro_nivel WHERE id = $id_nivel";
-        $rta = $wpdb->get_results( $sql );
-        return $rta[0]->nivel;
+        if( !empty($id_nivel) ){
+            $sql = "SELECT * FROM wp_ch_miembro_nivel WHERE id = $id_nivel";
+            $rta = $wpdb->get_results( $sql );
+            return $rta[0]->nivel;
+        }else{
+            return null;
+        }
     }
     public function buscar_nivel_instructor($id_nivel){
         global $wpdb;
-        $sql = "SELECT * FROM wp_ch_miembro_nivel_instructor WHERE id = $id_nivel";
-        $rta = $wpdb->get_results( $sql );
-        return $rta[0]->nivel;
+        if( !empty($id_nivel) ){
+            $sql = "SELECT * FROM wp_ch_miembro_nivel_instructor WHERE id = $id_nivel";
+            $rta = $wpdb->get_results( $sql );
+            return $rta[0]->nivel;
+        }else{
+            return null;
+        }
     }
     
     public function get_lista_nivel(){
