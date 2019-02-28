@@ -33,6 +33,8 @@ class ch_inicio {
         add_action("personal_options_update",  [$this, "registrar_usuario"]);
         
         
+
+        add_shortcode( 'ch_miembro_perfil', [$this, 'mostrar_perfil_instructor'] );
         
         add_shortcode( 'ch_miembro_carnet', [$this, 'mostrar_carnet_miembro'] );
         add_shortcode('ch_miembro_listado_instructores', [$this, 'mostrar_listado_instructores']);
@@ -128,6 +130,14 @@ class ch_inicio {
         $user->set_tipo_documento($_POST["tipo_documento"]);
         $user->set_documento($_POST["documento"]);
         $user->set_localidad($_POST["localidad"]);
+        
+        
+        $user->setTituloPagina($_POST["tituloPagina"]);
+        $user->setDescCorta($_POST["descCorta"]);
+        $user->setDescripcion($_POST["descripcion"]);
+        $user->setContacto($_POST["contacto"]);
+        
+        
 //        print "<h1>Files</h1>";
 //        print_r($_FILES);
         
@@ -159,11 +169,19 @@ class ch_inicio {
         $usuario = ch_miembro_usuarios::get_miembro( $profileuser->ID );
             $documento = $usuario->get_documento();
             $localidad = $usuario->get_localidad();
+            $tituloPagina = $usuario->getTituloPagina();
+            $descCorta = $usuario->getDescCorta();
+            $contacto = $usuario->getContacto();
+            $descripcion = $usuario->getDescripcion();
         }else{
             $documento = ( ! empty( $_POST['documento'] ) ) ? sanitize_text_field( $_POST['documento'] ) : '';
-            $localidad = ( ! empty( $_POST['localidad'] ) ) ? sanitize_text_field( $_POST['localidad'] ) : '';      
+            $localidad = ( ! empty( $_POST['localidad'] ) ) ? sanitize_text_field( $_POST['localidad'] ) : '';     
+            $tituloPagina = ( ! empty( $_POST['$tituloPagina'] ) ) ? sanitize_text_field( $_POST['$tituloPagina'] ) : '';
+            $descCorta = ( ! empty( $_POST['descCorta'] ) ) ? sanitize_text_field( $_POST['descCorta'] ) : '';     
+            $contacto = ( ! empty( $_POST['contacto'] ) ) ? sanitize_text_field( $_POST['contacto'] ) : '';
+            $descripcion = ( ! empty( $_POST['descripcion'] ) ) ? sanitize_text_field( $_POST['descripcion'] ) : '';      
         }
-              
+
         ?>
         
         <p>
@@ -183,13 +201,30 @@ class ch_inicio {
             <label for="localidad"><?php _e( 'Localidad' ) ?><br />
                 <input type="text" name="localidad" id="localidad" class="input" value="<?php echo esc_attr(  $localidad  ); ?>" size="25" /></label>
         </p>
-
+        <div>
+            <h2>Pagina personal</h2>
         <p>
-            <label for="localidad"><?php _e( 'Localidad' ) ?><br />
-                
             
+            <label for="localidad"><?php _e( 'Titulo Pagina' ) ?><br />
+            <input type="text" name="tituloPagina" id="tituloPagina" class="input" value="<?php echo esc_attr(  $tituloPagina  ); ?>" size="25" /></label>
         </p>
-        
+        <p>             
+            
+            <label for="descCorta"><?php _e( 'Descripción corta' ) ?><br />
+                <textarea name="descCorta"id="descCorta"><?php echo esc_attr($descCorta) ?></textarea>
+            </label>
+        </p>
+        <p>
+            <label for="contacto"><?php _e( 'Datos de contacto' ) ?><br />
+                <textarea name="contacto"id="descCorta"><?php echo esc_attr($contacto) ?></textarea>
+            </label>
+        </p>
+        <p>
+            <label for="descripcion"><?php _e( 'Descripción' ) ?><br />
+                <textarea name="descripcion"id="descCorta"><?php echo esc_attr($descripcion) ?></textarea>
+            </label>
+        </p>
+        </div>
         <?php
         
         
@@ -204,6 +239,13 @@ class ch_inicio {
         print "<h2>Importar Miembros</h2>";
         $miembros = new ch_miembro_usuarios();
         print $miembros->importar_listado($_REQUEST);  
+    }
+    
+    public function mostrar_perfil_instructor(){
+        
+        $miembro = ch_miembro_usuarios::get_instancia($_REQUEST["id_instructor"]);
+        $miembro->get_perfil_instructor($_REQUEST);
+        
     }
 
 }

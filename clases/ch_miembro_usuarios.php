@@ -22,9 +22,51 @@ class ch_miembro_usuarios extends ch_core{
     protected $nivel_instructor;
     protected $nombre_tabla = "ch_miembros";
     protected $pagos;
+    protected $tituloPagina;
+    protected $descCorta;
+    protected $contacto;
+    protected $descripcion;   
     
+    static public function get_instancia($id_usuario){
+        $usuario = new ch_miembro_usuarios();
+        $usuario->buscar_usuario($id_usuario);
+        return $usuario;
+    }
     
-    
+    function setTituloPagina($tituloPagina) {
+        $this->tituloPagina = $tituloPagina;
+    }
+
+    function setDescCorta($descCorta) {
+        $this->descCorta = $descCorta;
+    }
+
+    function setContacto($contacto) {
+        $this->contacto = $contacto;
+    }
+
+    function setDescripcion($descripcion) {
+        $this->descripcion = $descripcion;
+    }
+
+        
+    function getTituloPagina() {
+        return $this->tituloPagina;
+    }
+
+    function getDescCorta() {
+        return $this->descCorta;
+    }
+
+    function getContacto() {
+        return $this->contacto;
+    }
+
+    function getDescripcion() {
+        return $this->descripcion;
+    }
+
+        
     public function get_formulario(){
         $rta = "<input type='text' name='dni'>";
         return $rta;   
@@ -53,6 +95,12 @@ class ch_miembro_usuarios extends ch_core{
 
             if( !empty( $this->nombre ) ) update_user_meta( $this->user_id, 'first_name', sanitize_text_field( $this->nombre ) );
             if( !empty( $this->apellido ) ) update_user_meta( $this->user_id, 'last_name', sanitize_text_field( $this->apellido ) );
+            
+            
+            if( !empty( $this->tituloPagina ) ) update_user_meta( $this->user_id, 'tituloPagina', sanitize_text_field( $this->tituloPagina ) );
+            if( !empty( $this->descCorta ) ) update_user_meta( $this->user_id, 'descCorta', sanitize_text_field( $this->descCorta ) );
+            if( !empty( $this->descripcion ) ) update_user_meta( $this->user_id, 'descripcion', sanitize_text_field( $this->descripcion ) );
+            if( !empty( $this->contacto ) ) update_user_meta( $this->user_id, 'contacto', sanitize_text_field( $this->contacto ) );
 
             $insert = [
                 "user_id"=>( $this->user_id ),
@@ -130,7 +178,7 @@ class ch_miembro_usuarios extends ch_core{
     }
     
     public function get_lista($filtro, $page=1){
-   
+        print_r($filtro);
         global $wpdb;
         $where = [];
         if(!empty($filtro["tipo"])){
@@ -190,6 +238,11 @@ class ch_miembro_usuarios extends ch_core{
         $this->apellido = get_user_meta($this->user_id,"last_name",true);
         $this->nickname = get_user_meta($this->user_id, "nickname", true);
         $this->email = get_user_option("user_email", $this->user_id);
+        
+        $this->tituloPagina = get_user_meta($this->user_id, "tituloPagina", true);
+        $this->descCorta = get_user_meta($this->user_id, "descCorta", true);
+        $this->descripcion = get_user_meta($this->user_id, "descripcion", true);
+        $this->contacto = get_user_meta($this->user_id, "contacto", true);
     }
     
     public function get_tipo_documento(){return $this->tipo_documento ;}
@@ -612,8 +665,8 @@ public function get_tabla_html_frontend($filtroLista, $pagina = 1){
         }
         
         if( !empty( $_SESSION["filtro_ch_miembro"] ) ){
-            $filtro= $_SESSION["filtro_ch_miembro"];    
-            $filtro["tipo"] = 2; //siempre instructores
+            $filtroLista= $_SESSION["filtro_ch_miembro"];    
+            $filtroLista["tipo"] = 2; //siempre instructores
             $lista = $this->get_lista($filtroLista, $pagina = 1);
         }else{
             $lista = [];
@@ -643,6 +696,7 @@ FIL;
                 $rta .= "<td>".$apellido."</td>";
                 $rta .= "<td>".$email."</td>";
                 $rta .= "<td>Instructor nivel ".$row->nivel_instructor."</td>";
+                $rta .= "<td><a href='perfil-del-instructor??id_instructor={$row->user_id}'>Visitar</td>";
             
 //            $rta.="<td><a href='?page=listado_miembros&opt=detalles&id=".$row->user_id."'>Detalles</a></td>";
 //            $rta.="<td><a href='?page=listado_miembros&opt=editar&id=".$row->user_id."'>Editar</a></td>";
@@ -651,6 +705,21 @@ FIL;
         $rta .= "</tbody></table>";
         return $rta;
     }
-    
+ 
+    public function  get_perfil_instructor($request){
+
+        $titulo = $this->getTituloPagina();
+        $desCorta = $this->getDescCorta();
+        $contacto = $this->getContacto();
+        $descripcion = $this->getDescripcion();
+        $rta=<<<HTML
+                
+            <h1>$titulo</h1>    
+            <div><em>$desCorta</em></div>
+            <div><em>$contacto</em></div>
+            <p>$descripcion</p>
+HTML;
+     print $rta;   
+    }
     
 }
